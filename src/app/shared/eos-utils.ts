@@ -1,7 +1,6 @@
 import {Account, Node } from '@zapjs/eos-utils';
 import { Subscriber } from "@zapjs/eos-subscriber";
 import { Provider } from "@zapjs/eos-provider";
-import { curveString } from './Curve';
 import BigNumber from 'big-number';
 import ecc from 'eosjs-ecc';
 
@@ -79,8 +78,6 @@ export class ProdNode extends Node {
 		const endps = await provider.queryProviderEndpoints(0, -1, -1);
 		const endp = endps.rows.filter((x: any, i: any) => x.specifier === endpoint);
 		response.curveValues = endp[0].functions;
-		response.curveString = curveString(endp[0].functions);
-    response.curveMax = endp[0].functions[endp[0].functions.length - 1];
 		const eos = await provider.getNode().connect();
 		const encodedName = new BigNumber(eos.modules.format.encodeName(provider.getAccount().name, false));
     const provInf = await provider.queryProviderList(0, -1, -1);

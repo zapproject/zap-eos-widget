@@ -5,7 +5,6 @@ import { map, shareReplay, switchMap, filter, share, distinctUntilChanged, take 
 import {ProdNode as Node } from './eos-utils';
 import { Subscriber } from '@zapjs/eos-subscriber';
 import { Provider } from '@zapjs/eos-provider';
-import { curveString } from './Curve';
 import BigNumber from 'big-number';
 import ecc from 'eosjs-ecc';
 import hdkey from 'hdkey';
