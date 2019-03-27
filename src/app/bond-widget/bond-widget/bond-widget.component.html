@@ -8,8 +8,6 @@
     *ngIf="accountAddress"
     [attr.address]="accountAddress"
     [attr.zap]="zapBalance"
-    [attr.eth]="eth"
-    [attr.approved]="allowance"
   ></zap-user-info>
 
   <zap-endpoint-info
@@ -24,11 +22,9 @@
 <zap-bond-form
   [attr.curvevalues]="curveValuesStringified"
   [attr.dotsissued]="dotsIssued"
-  [attr.allowance]="allowance"
   [attr.bounddots]="dotsBound"
   [attr.loading]="loading$ | async"
   (unbond)="handleUnbond($event)"
-  (approve)="handleApprove($event)"
   (bond)="handleBond($event)"
   (showLogin)="zap.showLogin()"
 ></zap-bond-form>

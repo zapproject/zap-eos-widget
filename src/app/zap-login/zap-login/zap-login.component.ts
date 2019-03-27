@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewEncapsulation, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
-import HDWalletProvider from 'truffle-hdwallet-provider';
+
 
 @Component({
   templateUrl: './zap-login.component.html',
@@ -17,19 +17,8 @@ export class ZapLoginComponent implements OnInit {
 
   networks = [
     {
-      name: 'Kovan Test Network',
-      url: 'wss://kovan.infura.io/ws',
-      CHAIN_ID: 42,
-    },
-    {
-      name: 'Main Ethereum Network',
-      url: 'wss://mainnet.infura.io/ws',
-      CHAIN_ID: 1,
-    },
-    {
-      name: 'Localhost 8546',
-      url: 'ws://localhost:8546',
-      CHAIN_ID: 1337,
+      name: 'Test Node',
+      url: 'http://127.0.0.1:8888'
     }
   ];
 
@@ -48,8 +37,7 @@ export class ZapLoginComponent implements OnInit {
     this.disabled = true;
     this.cd.detectChanges();
     try {
-      const provider = new HDWalletProvider(mnemonic, network);
-      this.login.emit(provider);
+      this.login.emit({mnemonic, network});
     } catch (e) {
       this.disabled = false;
       // this.message.message = {type: MESSAGE_TYPE.ERROR, text: e.message};

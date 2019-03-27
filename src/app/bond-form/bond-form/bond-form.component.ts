@@ -12,7 +12,7 @@ import {
   ElementRef,
   AfterViewInit
 } from '@angular/core';
-import { Curve } from 'zapjs';
+import { Curve } from '@zapjs/curve';
 
 @Component({
   templateUrl: './bond-form.component.html',
@@ -56,12 +56,8 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
       this.curve = new Curve(JSON.parse(changes.curvevalues.currentValue));
       this.updateValues();
     }
-    if (changes.allowance && changes.allowance.currentValue !== changes.allowance.previousValue) {
-      this.loggedIn = !!this.allowance || this.allowance === '0';
-      this.approved = Number(changes.allowance.currentValue);
-      this.updateValues();
-    }
     if (changes.bounddots && changes.bounddots.currentValue !== changes.bounddots.previousValue) {
+      this.loggedIn = !!this.bounddots || this.bounddots === '0';
       this.boundedDots = Number(changes.bounddots.currentValue);
       this.dots = Number(this.input.nativeElement.value);
       this.canUnbond = this.boundedDots > this.dots;
@@ -73,10 +69,6 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
 
   get max() {
     return this.curve ? this.curve.max - this.dotsIssued : 100;
-  }
-
-  get needApprove() {
-    return this.zapRequired > this.approved;
   }
 
   private updateValues() {
@@ -103,16 +95,9 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
     this.unbond.emit(this.dots);
   }
 
-  handleApprove() {
-    if (this.dots < 1) return;
-    this.approve.emit(this.zapRequired);
-  }
 
   handleSubmit(e) {
     e.preventDefault();
-    if (this.needApprove) {
-      return;
-    }
     if (this.dots > 0) {
       this.bond.emit(this.dots);
     }

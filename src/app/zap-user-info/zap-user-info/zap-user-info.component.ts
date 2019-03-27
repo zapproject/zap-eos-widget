@@ -9,8 +9,6 @@ export class ZapUserInfoComponent implements OnInit {
 
   @Input() address: any;
   @Input() zap: any;
-  @Input() eth: any;
-  @Input() approved: any;
 
   constructor() { }
 

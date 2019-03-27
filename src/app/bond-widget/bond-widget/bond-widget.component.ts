@@ -18,9 +18,7 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
   dotsIssued: any;
   zapBalance: any;
   dotsBound: any;
-  eth: any;
   accountAddress: any;
-  allowance: any = null;
   private action = new Subject<{type: 'BOND' | 'UNBOND' | 'APPROVE', payload: number}>();
   private change = new Subject<void>();
   change$ = this.change.asObservable().pipe(shareReplay(1));
@@ -41,27 +39,22 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnInit() {
     const change$ = merge(this.change$, of(1));
-    this.subscriptions.push(this.zap.netId$.subscribe(netid => { this.netid = netid; }))
-    this.subscriptions.push(change$.pipe(switchMap(e => this.zap.getBoundDots(this.address, this.endpoint))).subscribe(dots => {
-      this.dotsBound = dots;
-      this.cd.detectChanges();
-    }));
-    this.subscriptions.push(this.zap.allowance$.subscribe(allowance => {
-      this.allowance = allowance;
+
+    this.subscriptions.push(this.zap.netid$.subscribe(netid => { this.netid = netid; }))
+
+    this.subscriptions.push(this.zap.subscriber$.subscribe((subscriber: any) => {
+      this.accountAddress = subscriber ? subscriber.getAccount().name : '';
       this.cd.detectChanges();
     }));
 
-    this.subscriptions.push(this.zap.subscriber$.subscribe(subscriber => {
-      this.accountAddress = subscriber ? subscriber.subscriberOwner : '';
-      this.cd.detectChanges();
-    }));
+    this.subscriptions.push(change$.pipe(switchMap(e => this.zap.getBoundDots(this.address, this.endpoint))).subscribe(dots => {
+     this.dotsBound = dots;
+     this.cd.detectChanges();
+   }));
+
 
     this.subscriptions.push(this.zap.balance$.subscribe(zap => {
       this.zapBalance = zap;
-      this.cd.detectChanges();
-    }));
-    this.subscriptions.push(this.zap.eth$.subscribe(eth => {
-      this.eth = eth;
       this.cd.detectChanges();
     }));
 
@@ -80,26 +73,21 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
       switchMap(({payload}) => this.zap.unbond(this.address, this.endpoint, payload)),
       share(),
     );
-    const approve$ = action$.pipe(
-      filter(({type}) => type === 'APPROVE'),
-      tap(() => { this.handleMessage({text: 'Approving...'}); }),
-      switchMap(({payload}) => this.zap.approve(payload)),
-      share(),
-    );
-    const error$ = merge(bond$, unbond$, approve$).pipe(
+
+    const error$ = merge(bond$, unbond$).pipe(
       filter(response => !!response.error),
       map(({error}) => error),
       tap(error => {
         this.handleMessage({text: error.message, type: 'ERROR'});
       }),
     );
-    const success$ = merge(bond$, unbond$, approve$).pipe(
+    const success$ = merge(bond$, unbond$).pipe(
       filter(response => !response.error),
       map(({result}) => result),
       tap((result) => {
         console.log('result', result);
         this.change.next();
-        this.handleMessage({text: 'Done!', type: 'SUCCESS', tx: result.transactionHash});
+        this.handleMessage({text: 'Done!', type: 'SUCCESS', tx: result.transaction_id});
       }),
     );
     this.loading$ = merge(
@@ -145,8 +133,4 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
     this.action.next({type: 'UNBOND', payload: e.detail});
   }
 
-  handleApprove(e: CustomEvent) {
-    this.action.next({type: 'APPROVE', payload: e.detail});
-  }
 }
-

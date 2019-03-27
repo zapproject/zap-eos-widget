@@ -15,16 +15,25 @@ export class TransactionInfoComponent implements OnInit {
   ngOnInit() {
   }
 
-  get href() {
-    const netId = Number(this.netid);
-    switch (netId) {
-      case 1:
-        return 'https://etherscan.io/tx/' + this.tx;
-      case 42:
-        return 'https://kovan.etherscan.io/tx/' + this.tx;
-      default:
-        return '#';
-    }
+  getTransaction(e) {
+    e.preventDefault();
+    /*const data = `{"id": ${'3eab71a1e655394028dd50c26db596f99bd4409dd71e64e67a51e00eca2e885d'}}`;
+    const xhr = new XMLHttpRequest();
+
+    xhr.addEventListener('readystatechange', function() {
+      if (this.readyState === this.DONE) {
+        console.log(this.responseText);
+      }
+    });
+
+    xhr.open('POST', 'http://127.0.0.1:8888/v1/history/get_transaction');
+    xhr.setRequestHeader('content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
+
+    xhr.send(data);*/
   }
 
+
+  get href() {
+    return 'http://127.0.1.1:8888/' + this.tx;
+  }
 }

@@ -1,12 +1,21 @@
 import { Injectable } from '@angular/core';
 import { SharedModule } from './shared.module';
-import { Observable, from, merge, interval, of, Subject } from 'rxjs';
+import { Observable, from, merge, interval, of, Subject, BehaviorSubject } from 'rxjs';
 import { map, shareReplay, switchMap, filter, share, distinctUntilChanged, take } from 'rxjs/operators';
-import Web3 from 'web3';
-import BigNumber from 'bignumber.js';
-import { loadProvider, getProviderEndpointInfo, loadSubscriber } from './utils';
-import { ZapSubscriber, Types } from 'zapjs';
+import {ProdNode as Node } from './eos-utils';
+import { Subscriber } from '@zapjs/eos-subscriber';
+import { Provider } from '@zapjs/eos-provider';
+import { curveString } from './Curve';
+import BigNumber from 'big-number';
+import ecc from 'eosjs-ecc';
+import hdkey from 'hdkey';
+import wif from 'wif';
+import bip39 from 'bip39';
 
+declare const Buffer;
+
+//brave foil add horn welcome ancient squirrel fury build document panic rural
+const network = 'http://127.0.0.1:8888';
 interface AppWindow extends Window {
   web3: any;
   ethereum: any;
@@ -17,135 +26,84 @@ declare const window: AppWindow;
   providedIn: SharedModule
 })
 export class ZapService {
-
-  public netId$: Observable<number>;
-  private web3: Web3;
-
-  public account$: Observable<string>;
-  private triggerUpdate = new Subject<void>();
-
+  private node: Node;
+  public subscriber$: BehaviorSubject<Subscriber | null>;
+  private triggerUpdate$ = new Subject<void>();
   private login: HTMLElement;
-
-  public allowance$: Observable<any>;
-  public subscriber$: Observable<ZapSubscriber>;
   public balance$: Observable<any>;
-  public eth$: Observable<any>;
+  public netid$;
+
 
   constructor() {
-    const trigger$ = this.triggerUpdate.asObservable();
+    const trigger$ = this.triggerUpdate$.asObservable();
+    this.subscriber$ = new BehaviorSubject(null);
+    this.balance$ = new Observable();
+    const interval$ = merge(trigger$, of(1), interval(5000)).pipe(share());
     this.hideLogin = this.hideLogin.bind(this);
     this.handleLogin = this.handleLogin.bind(this);
-    const interval$ = merge(trigger$, of(1), interval(5000)).pipe(share());
-    this.web3 = this.getWeb3();
+    this.node = new Node('', false, network);
 
-    this.netId$ = interval$.pipe(
-      switchMap(() => from(this.web3.eth.net.getId() as Promise<number>)),
-      distinctUntilChanged(),
-      shareReplay(1),
-    );
+    this.netid$ = of(1);
 
-    this.account$ = interval$.pipe(
-      switchMap(() => from(this.web3.eth.getAccounts())),
-      map(accounts => accounts && accounts[0] ? accounts[0] : null),
-      distinctUntilChanged(),
-      shareReplay(1),
-    );
-
-    this.eth$ = interval$.pipe(
-      switchMap(() => this.account$),
-      filter(accountAddress => !!accountAddress),
-      switchMap(accountAddress => this.web3.eth.getBalance(accountAddress)),
-    );
-
-    this.subscriber$ = this.account$.pipe(
-      switchMap(accountAddress => accountAddress ? loadSubscriber(this.web3, accountAddress) : of(null)),
-      distinctUntilChanged(),
-      shareReplay(1),
-    );
 
     this.balance$ = interval$.pipe(
       switchMap(() => this.subscriber$),
-      switchMap(subscriber => subscriber ? subscriber.getZapBalance() : of(null)),
-    ),
-
-    this.allowance$ = interval$.pipe(
-      switchMap(() => this.subscriber$),
-      switchMap(subscriber =>
-        subscriber
-        ? subscriber.zapToken.contract.methods.allowance(subscriber.subscriberOwner, subscriber.zapBondage.contract._address).call()
-        : of(null)
-      ),
-    );
+      switchMap((subscriber: Subscriber) => subscriber ? from(this.node.getZapBalance(subscriber)) : of(null)),
+    )
   }
 
   getBoundDots(provider, endpoint) {
-    const subscriber$ = merge(of(1), interval(5000)).pipe(switchMap(() => this.subscriber$));
-    const noop$ = subscriber$.pipe(filter(subscriber => !subscriber), map(() => null));
-    const dots$ = subscriber$.pipe(
-      filter(subscriber => !!subscriber && subscriber instanceof ZapSubscriber),
-      switchMap(subscriber => subscriber.getBoundDots({provider, endpoint})),
+    const noop$ = this.subscriber$.pipe(filter(subscriber => !subscriber), map(() => null));
+    const dots$ = this.subscriber$.pipe(
+      filter((subscriber: any) => !!subscriber && subscriber instanceof Subscriber),
+      switchMap(subscriber => this.node.getEndpointBound(subscriber, provider, endpoint)),
     );
     return merge(noop$, dots$);
   }
 
+
   getWidgetInfo(address: string, endpoint: string) {
-    return this.netId$.pipe(
-      map(netId => loadProvider(this.web3, netId, address)),
-      switchMap(provider => from(
-        Promise.all([getProviderEndpointInfo(provider, endpoint), provider.getTitle().then(() => provider)])
-      )),
-      map(([endpointInfo, provider]) => {
-        const curve = endpointInfo.curve;
-        const dotsIssued = endpointInfo.dotsIssued;
-        const endpointMd = endpointInfo.endpointMd;
-        const endpointJson = endpointInfo.endpointJson;
+    const provider = this.node.loadProvider(address);
+    const endp$ =  from(this.node.getProviderEndpointInfo(provider, endpoint));
+    return endp$.pipe(
+      map((response: any) => {
+        const curve: any = {};
+        curve.values = response.curveValues;
+        curve.max = response.curveMax;
+        // curve.curveString = response.curveString;
+        const dotsIssued = response.dotsIssued;
+        const endpointMd = response.endpointMd;
+        const endpointJson = response.endpointJson;
         return {
           provider,
           curve,
           dotsIssued,
           endpointMd,
           endpointJson,
-        };
+        }
       }),
     );
   }
 
   bond(provider: string, endpoint: string, dots): Observable<{result: any; error: any}> {
     return this.subscriber$.pipe(
-      filter(subscriber => !!subscriber && subscriber instanceof ZapSubscriber),
-      switchMap(subscriber => subscriber.bond({provider, endpoint, dots})
+      filter((subscriber: Subscriber) => !!subscriber && subscriber instanceof Subscriber),
+      switchMap(subscriber => subscriber.bond(provider, endpoint, dots)
         .then(result => ({result, error: null}))
-        .catch(error => ({error, result: null}))
-      ),
-    );
+        .catch(error => ({error, result: null})))
+      )
   }
 
   unbond(provider: string, endpoint: string, dots): Observable<{result: any; error: any}> {
     return this.subscriber$.pipe(
-      filter(subscriber => !!subscriber && subscriber instanceof ZapSubscriber),
-      switchMap(subscriber => subscriber.unBond({provider, endpoint, dots})
+      filter((subscriber: Subscriber) => !!subscriber && subscriber instanceof Subscriber),
+      switchMap((subscriber: Subscriber) => subscriber.unbond(provider, endpoint, dots)
         .then(result => ({result, error: null}))
-        .catch(error => ({error, result: null}))
-      ),
-    );
+        .catch(error => ({error, result: null})))
+      )
   }
 
-  approve(zap: number): Observable<{result: any; error: any}> {
-    return this.subscriber$.pipe(
-      filter(subscriber => !!subscriber && subscriber instanceof ZapSubscriber),
-      switchMap(subscriber => {
-        const approve: Promise<any> = subscriber.zapToken.contract.methods.approve(
-          subscriber.zapBondage.contract._address, (new BigNumber(zap)).toFixed(),
-        ).send({
-          from: subscriber.subscriberOwner,
-          gas: Types.DEFAULT_GAS,
-        });
-        return approve
-          .then(result => ({result, error: null}))
-          .catch(error => ({error, result: null}));
-      }),
-    );
-  }
+
 
   showLogin() {
     this.login = document.body.appendChild(document.createElement('zap-login'));
@@ -155,44 +113,24 @@ export class ZapService {
 
   hideLogin() {
     this.login.removeEventListener('login', this.handleLogin);
-    this.login.removeEventListener('close', this.handleLogin);
+    this.login.removeEventListener('close', this.hideLogin);
     this.login.parentElement.removeChild(this.login);
     this.login = null;
   }
 
   handleLogin(event: CustomEvent) {
-    this.account$.pipe(
-      filter(e => !!e),
-      take(1),
-    ).subscribe(() => {
-      this.hideLogin();
-    });
-    this.setProvider(event.detail);
-  }
-
-  setProvider(provider) {
-    this.web3.setProvider(provider);
-    this.triggerUpdate.next();
-  }
-
-  private getWeb3(): Web3 {
-    let web3: Web3;
-    try {
-      if (window.ethereum) {
-        web3 = new Web3(window.ethereum);
-        // await window.ethereum.enable();
-      } else if (window.web3) {
-        web3 = new Web3(window.web3.currentProvider);
-      } else {
-        web3 = new Web3('wss://kovan.infura.io/ws'); // Kovan by default
-      }
-      return web3;
-    } catch (e) {
-      console.log(e);
-      return new Web3(window.ethereum || window.web3 || 'wss://kovan.infura.io/ws');
-    }
+    const { mnemonic, network } = event.detail;
+    const seed = bip39.mnemonicToSeedHex(mnemonic)
+		const master = hdkey.fromMasterSeed(new Buffer(seed, 'hex'))
+		const nodem = master.derive("m/44'/194'/0'/0/0")
+		const key = wif.encode(128, nodem._privateKey, false);
+    this.node = new Node(key, false, network);
+    this.node.loadSubscriber().then(subscriber => {
+      if (subscriber) this.hideLogin();
+      this.subscriber$.next(subscriber);
+      this.triggerUpdate$.next();
+    })
   }
 
 
 }
-
