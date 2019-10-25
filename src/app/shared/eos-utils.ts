@@ -1,16 +1,17 @@
 import {Account, Node } from '@zapjs/eos-utils';
 import { Subscriber } from "@zapjs/eos-subscriber";
 import { Provider } from "@zapjs/eos-provider";
-import BigNumber from 'big-number';
+import BigNumber from 'bignumber.js';
 import ecc from 'eosjs-ecc';
+import { Serialize, Numeric } from 'eosjs';
 
 
 export class ProdNode extends Node {
 	ACC_USER_PRIV_KEY: string;
 	addressesPromise: Promise<any>;
-  providersPromise: Promise<any>;
-  ProvEndpPromise: Promise<any>;
-  lastTaken: Array<string> = [];
+  	providersPromise: Promise<any>;
+  	ProvEndpPromise: Promise<any>;
+  	lastTaken: Array<string> = [];
 	connect: any;
 
 	constructor(privateKey: string, verbose: boolean, endpoint: string) {
@@ -19,26 +20,27 @@ export class ProdNode extends Node {
 			verbose: verbose,
 			key_provider: [privateKey],
 			http_endpoint: endpoint,
-			chain_id: ''
+			chain_id: '',
+			contract: 'zapcoretest4'
 		});
 		this.ACC_USER_PRIV_KEY = privateKey;
 	}
 
-	loadProvider(name: any) {
+	public loadProvider(name: any) {
 		const node = this;
-  	if(!name) return null;
-		const providerAcc = new Account(name);
-		const provider: Provider = new Provider({
-		account: providerAcc,
-		node
+  		if(!name) return null;
+			const providerAcc = new Account(name);
+			const provider: Provider = new Provider({
+			account: providerAcc,
+			node
 		});
 		return provider;
 	}
 
-	async loadSubscriber(_name?: any) {
+	public async loadSubscriber(_name?: any) {
 		const node = this;
 		const name = (_name) ? _name : await this.loadAccount();
-  	if(!name) return null;
+  		if(!name) return null;
 		const subscriberAcc = new Account(name);
 		subscriberAcc.usePrivateKey(this.ACC_USER_PRIV_KEY);
 		const subscriber: Subscriber = new Subscriber({
@@ -49,46 +51,52 @@ export class ProdNode extends Node {
 	}
 
 	getZapBalance(subscriber: Subscriber) {
-		return this.connect().then(eos => eos.getCurrencyBalance('zap.token', subscriber.getAccount().name, 'TST'));
+		return this.rpc.get_currency_balance("eosio.token", subscriber.getAccount().name, 'EOS')
 	}
 
-	async loadAccount() {
+	public async loadAccount() {
 		const node = this;
-		const eos = await node.connect();
-		const accounts = await eos.getKeyAccounts({public_key: ecc.privateToPublic(this.ACC_USER_PRIV_KEY)});
+		const accounts = await this.rpc.history_get_key_accounts(ecc.privateToPublic(this.ACC_USER_PRIV_KEY));
+		console.log(ecc.privateToPublic(this.ACC_USER_PRIV_KEY))
 		return accounts.account_names[0];
 	}
 
-	async getEndpointBound(subscriber: Subscriber, provider: string, endpoint: string) {
-    const eos = await subscriber.getNode().connect();
-    const encodedName = new BigNumber(eos.modules.format.encodeName(provider, false));
-    const allHolders = await subscriber.queryHolders(encodedName.toString(), encodedName.plus(1).toString(), -1);
-    const _bound = allHolders.rows.filter((raw: any) => raw.endpoint === endpoint);
-    const bound = (_bound.length) ? _bound[0].dots : 0;
-    return bound;
-  }
+	public async getEndpointBound(subscriber: Subscriber, provider: string, endpoint: string) {
+    	const eos = await subscriber.getNode().connect();
+		const encodedName = new BigNumber(this.getEncodedName(provider));
+		// @ts-ignore
+    	const allHolders = await subscriber.queryHolders(encodedName.toString(), encodedName.plus(1).toString(), -1);
+    	const _bound = allHolders.rows.filter((raw: any) => raw.endpoint === endpoint);
+    	const bound = (_bound.length) ? _bound[0].dots : 0;
+    	return bound;
+  	}
 
-  async getFile(url) {
-    const response = await fetch(url);
-    const text = await response.text();
-  }
+  	public async getFile(url) {
+    	const response = await fetch(url);
+    	const text = await response.text();
+  	}
 
-	async getProviderEndpointInfo(provider: Provider, endpoint: string) {
+	public async getProviderEndpointInfo(provider: Provider, endpoint: string) {
 		const response: any = {};
 		const endps = await provider.queryProviderEndpoints(0, -1, -1);
 		const endp = endps.rows.filter((x: any, i: any) => x.specifier === endpoint);
 		response.curveValues = endp[0].functions;
-		const eos = await provider.getNode().connect();
-		const encodedName = new BigNumber(eos.modules.format.encodeName(provider.getAccount().name, false));
-    const provInf = await provider.queryProviderList(0, -1, -1);
-    response.title  = provInf.rows[0].title;
+    	const provInf = await provider.queryProviderList(0, -1, -1);
+    	response.title  = provInf.rows[0].title;
 		const dotsIssued = await provider.queryIssued(endp[0].id, endp[0].id + 1, 1);
 		response.dotsIssued = (dotsIssued.rows.length) ? dotsIssued.rows[0].dots : 0;
-    const _params = await provider.queryParams(0, -1, -1, 2);
-    const params = _params.rows.filter(x => x.endpoint === '');
-    if (!params.length) return response;
-    response.endpointMd = await this.getFile(JSON.parse(params[0]['values'][0])[endpoint + '.md']);
-    response.endpointJson = await this.getFile(JSON.parse(params[0]['values'][0])[endpoint + '.json']);
+    	const _params = await provider.queryParams(0, -1, -1, 2);
+    	const params = _params.rows.filter(x => x.endpoint === '');
+    	if (!params.length) return response;
+    	response.endpointMd = await this.getFile(JSON.parse(params[0]['values'][0])[endpoint + '.md']);
+    	response.endpointJson = await this.getFile(JSON.parse(params[0]['values'][0])[endpoint + '.json']);
 		return response;
 	}
+	public getEncodedName(name: string) {
+		const buffer: Serialize.SerialBuffer = new Serialize.SerialBuffer();
+		buffer.pushName(name);
+		return Numeric.binaryToDecimal(buffer.getUint8Array(8));
+	  }
 }
+
+

@@ -1,20 +1,17 @@
 import { Injectable } from '@angular/core';
 import { SharedModule } from './shared.module';
 import { Observable, from, merge, interval, of, Subject, BehaviorSubject } from 'rxjs';
-import { map, shareReplay, switchMap, filter, share, distinctUntilChanged, take } from 'rxjs/operators';
+import { map, switchMap, filter, share, distinctUntilChanged, take } from 'rxjs/operators';
 import {ProdNode as Node } from './eos-utils';
 import { Subscriber } from '@zapjs/eos-subscriber';
-import { Provider } from '@zapjs/eos-provider';
-import BigNumber from 'big-number';
-import ecc from 'eosjs-ecc';
 import hdkey from 'hdkey';
 import wif from 'wif';
 import bip39 from 'bip39';
 
 declare const Buffer;
 
-//brave foil add horn welcome ancient squirrel fury build document panic rural
-const network = 'http://127.0.0.1:8888';
+//defy drop deny glide insane scene science original sheriff steel case muscle
+const network = 'https://api.jungle.alohaeos.com:443';
 interface AppWindow extends Window {
   web3: any;
   ethereum: any;
@@ -40,7 +37,7 @@ export class ZapService {
     const interval$ = merge(trigger$, of(1), interval(5000)).pipe(share());
     this.hideLogin = this.hideLogin.bind(this);
     this.handleLogin = this.handleLogin.bind(this);
-    this.node = new Node('', false, network);
+    this.node = new Node('5KhYksBVQurtLcuCLfjtweY4AmHKTS62bU9D3drjr8kffaQHB4x', false, network);
 
     this.netid$ = of(1);
 
@@ -122,7 +119,8 @@ export class ZapService {
     const seed = bip39.mnemonicToSeedHex(mnemonic)
 		const master = hdkey.fromMasterSeed(new Buffer(seed, 'hex'))
 		const nodem = master.derive("m/44'/194'/0'/0/0")
-		const key = wif.encode(128, nodem._privateKey, false);
+    const key = wif.encode(128, nodem._privateKey, false);
+    console.log(key)
     this.node = new Node(key, false, network);
     this.node.loadSubscriber().then(subscriber => {
       if (subscriber) this.hideLogin();

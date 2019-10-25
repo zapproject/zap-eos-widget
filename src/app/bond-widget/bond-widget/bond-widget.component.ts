@@ -112,7 +112,7 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
     ).subscribe(widget => {
       this.curveValuesStringified = JSON.stringify(widget.curve.values);
       this.dotsIssued = widget.dotsIssued;
-      this.title = widget.provider.title;
+      this.title = widget.provider.getTitle();
       this.endpointMd = widget.endpointMd;
       this.cd.detectChanges();
     });

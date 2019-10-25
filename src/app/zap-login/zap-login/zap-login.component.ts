@@ -18,7 +18,7 @@ export class ZapLoginComponent implements OnInit {
   networks = [
     {
       name: 'Test Node',
-      url: 'http://127.0.0.1:8888'
+      url: 'https://api.jungle.alohaeos.com:443'
     }
   ];
 
