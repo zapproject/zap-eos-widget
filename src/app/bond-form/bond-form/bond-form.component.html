@@ -1,7 +1,7 @@
 <form (submit)="handleSubmit($event)">
   <fieldset [disabled]="loading || !loggedIn">
     <input #input type="number" name="dots" [max]="max" min="1" value="1" (input)="handleDotsChange()">
-    <div class="bond-dots-price">{{zapRequired  | formatPrice}} needed</div>
+    <div class="bond-dots-price">{{zapRequired / 10000}} EOS needed</div>
     <button type="submit">Bond</button>
     <button (click)="handleUnbond()" [disabled]="!canUnbond" type="button">Unbond</button>
   </fieldset>

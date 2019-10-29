@@ -1,4 +1,5 @@
 <div>{{title}}</div>
 <div>{{endpoint}}</div>
 <div>DOTs issued: {{dotsissued}}</div>
-<div [hidden]="bounddots === undefined || bounddots === null">DOTs bound: {{bounddots}}</div>
+<div [hidden]="bounddots === undefined || bounddots === null || token">DOTs bound: {{bounddots}}</div>
+<div *ngIf="token">Token: {{token}}</div>

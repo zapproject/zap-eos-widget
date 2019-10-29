@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation, Input } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, Input, ChangeDetectorRef } from '@angular/core';
 
 @Component({
   templateUrl: './transaction-info.component.html',
@@ -9,31 +9,38 @@ export class TransactionInfoComponent implements OnInit {
 
   @Input() netid;
   @Input() tx;
+  txInfo;
 
-  constructor() { }
+  constructor(private cd: ChangeDetectorRef) { }
 
   ngOnInit() {
   }
 
-  getTransaction(e) {
+  getTransaction(e, tx: string) {
     e.preventDefault();
-    /*const data = `{"id": ${'3eab71a1e655394028dd50c26db596f99bd4409dd71e64e67a51e00eca2e885d'}}`;
+    const component = this;
+    if(component.txInfo) {
+      component.txInfo = '';
+      component.cd.detectChanges();
+      return;
+    }
+    const data = `{"id": "${tx}"}`;
     const xhr = new XMLHttpRequest();
-
     xhr.addEventListener('readystatechange', function() {
       if (this.readyState === this.DONE) {
-        console.log(this.responseText);
+        component.txInfo = this.responseText;
+        component.cd.detectChanges();
       }
     });
 
-    xhr.open('POST', 'http://127.0.0.1:8888/v1/history/get_transaction');
+    xhr.open('POST', 'https://api.jungle.alohaeos.com/v1/history/get_transaction');
     xhr.setRequestHeader('content-type', 'application/x-www-form-urlencoded; charset=UTF-8');
 
-    xhr.send(data);*/
+    xhr.send(data);
   }
 
 
   get href() {
-    return 'http://127.0.1.1:8888/' + this.tx;
+    return '#';
   }
 }

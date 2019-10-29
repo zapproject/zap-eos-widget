@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { SharedModule } from './shared.module';
-import { Observable, from, merge, interval, of, Subject, BehaviorSubject } from 'rxjs';
-import { map, switchMap, filter, share, distinctUntilChanged, take } from 'rxjs/operators';
+import { Observable, from, merge, interval, of, Subject, BehaviorSubject, forkJoin } from 'rxjs';
+import { map, switchMap, filter, share, distinctUntilChanged, take, tap, concat } from 'rxjs/operators';
 import {ProdNode as Node } from './eos-utils';
 import { Subscriber } from '@zapjs/eos-subscriber';
 import hdkey from 'hdkey';
@@ -11,7 +11,7 @@ import bip39 from 'bip39';
 declare const Buffer;
 
 //defy drop deny glide insane scene science original sheriff steel case muscle
-const network = 'https://api.jungle.alohaeos.com:443';
+const network = 'https://api.jungle.alohaeos.com';
 interface AppWindow extends Window {
   web3: any;
   ethereum: any;
@@ -24,27 +24,49 @@ declare const window: AppWindow;
 export class ZapService {
   private node: Node;
   public subscriber$: BehaviorSubject<Subscriber | null>;
-  private triggerUpdate$ = new Subject<void>();
+  public widgetType$: BehaviorSubject<string | null>;
+  public triggerUpdate$ = new Subject<void>();
   private login: HTMLElement;
   public balance$: Observable<any>;
+  public tokenBalance$: Observable<any>;
+  public dotsIssued$: Observable<any>;
   public netid$;
-
+  public token$: BehaviorSubject<string | null>;
+  public address;
+  public endpoint;
 
   constructor() {
     const trigger$ = this.triggerUpdate$.asObservable();
     this.subscriber$ = new BehaviorSubject(null);
+    this.widgetType$ = new BehaviorSubject(null);
+    this.token$ = new BehaviorSubject(null);
     this.balance$ = new Observable();
-    const interval$ = merge(trigger$, of(1), interval(5000)).pipe(share());
+    this.dotsIssued$ = new Observable();
+    
+    this.tokenBalance$ = new Observable();
+    const interval$ = merge(trigger$, of(1), interval(15000)).pipe(share());
     this.hideLogin = this.hideLogin.bind(this);
     this.handleLogin = this.handleLogin.bind(this);
     this.node = new Node('5KhYksBVQurtLcuCLfjtweY4AmHKTS62bU9D3drjr8kffaQHB4x', false, network);
-
     this.netid$ = of(1);
-
 
     this.balance$ = interval$.pipe(
       switchMap(() => this.subscriber$),
       switchMap((subscriber: Subscriber) => subscriber ? from(this.node.getZapBalance(subscriber)) : of(null)),
+    )
+
+    this.dotsIssued$ = interval$.pipe(
+      switchMap(() => {
+        const provider = this.node.loadProvider(this.address);
+        return this.address && this.endpoint ? from(this.node.getIssuedDots(provider, this.endpoint)) : of(null)
+      })
+    )
+
+    this.tokenBalance$ = interval$.pipe(
+      switchMap(() => this.token$),
+      filter(token => !!token),
+      switchMap(() => this.subscriber$),
+      switchMap(subscriber => (subscriber && this.token$.value)  ? from(this.node.getTokenBalance(subscriber, this.token$.value.split(' ')[1])) : of(null)),
     )
   }
 
@@ -57,8 +79,17 @@ export class ZapService {
     return merge(noop$, dots$);
   }
 
+  async initiate(provider, endpoint) {
+    const tokens = await this.node.getProviderTokens(provider, 0, -1, -1);
+    this.widgetType$.next(tokens.length ? 'TOKEN' : 'PROVIDER');
+    const endpointToken = tokens.filter((tok) => tok.endpoint === endpoint);
+    this.token$.next(endpointToken.length ? endpointToken[0].supply : null); 
+    this.triggerUpdate$.next();
+  }
 
   getWidgetInfo(address: string, endpoint: string) {
+    this.address = address;
+    this.endpoint = endpoint;
     const provider = this.node.loadProvider(address);
     const endp$ =  from(this.node.getProviderEndpointInfo(provider, endpoint));
     return endp$.pipe(
@@ -77,14 +108,18 @@ export class ZapService {
           endpointMd,
           endpointJson,
         }
-      }),
+      })
     );
+    
   }
 
   bond(provider: string, endpoint: string, dots): Observable<{result: any; error: any}> {
     return this.subscriber$.pipe(
-      filter((subscriber: Subscriber) => !!subscriber && subscriber instanceof Subscriber),
-      switchMap(subscriber => subscriber.bond(provider, endpoint, dots)
+      filter((subscriber) => !!subscriber && subscriber instanceof Subscriber),
+      switchMap((subscriber) => this.widgetType$.value === 'PROVIDER' ? subscriber.bond(provider, endpoint, dots)
+        .then(result => ({result, error: null}))
+        .catch(error => ({error, result: null})) :
+        this.node.tokenBond(subscriber, provider, endpoint, dots)
         .then(result => ({result, error: null}))
         .catch(error => ({error, result: null})))
       )
@@ -93,13 +128,14 @@ export class ZapService {
   unbond(provider: string, endpoint: string, dots): Observable<{result: any; error: any}> {
     return this.subscriber$.pipe(
       filter((subscriber: Subscriber) => !!subscriber && subscriber instanceof Subscriber),
-      switchMap((subscriber: Subscriber) => subscriber.unbond(provider, endpoint, dots)
+      switchMap((subscriber: Subscriber) =>  this.widgetType$.value === 'PROVIDER' ? subscriber.unbond(provider, endpoint, dots)
+        .then(result => ({result, error: null}))
+        .catch(error => ({error, result: null})) :
+        this.node.tokenUnBond(subscriber, provider, endpoint, dots)
         .then(result => ({result, error: null}))
         .catch(error => ({error, result: null})))
       )
   }
-
-
 
   showLogin() {
     this.login = document.body.appendChild(document.createElement('zap-login'));
@@ -120,7 +156,6 @@ export class ZapService {
 		const master = hdkey.fromMasterSeed(new Buffer(seed, 'hex'))
 		const nodem = master.derive("m/44'/194'/0'/0/0")
     const key = wif.encode(128, nodem._privateKey, false);
-    console.log(key)
     this.node = new Node(key, false, network);
     this.node.loadSubscriber().then(subscriber => {
       if (subscriber) this.hideLogin();
@@ -128,6 +163,5 @@ export class ZapService {
       this.triggerUpdate$.next();
     })
   }
-
 
 }
