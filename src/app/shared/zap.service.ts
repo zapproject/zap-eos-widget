@@ -24,27 +24,28 @@ declare const window: AppWindow;
 export class ZapService {
   private node: Node;
   public subscriber$: BehaviorSubject<Subscriber | null>;
-  public widgetType$: BehaviorSubject<string | null>;
-  public triggerUpdate$ = new Subject<void>();
+  public widgetType: {[key: string]: string} | any;
+  public token$: BehaviorSubject<{[key: string]: string} | any>;
+  public triggerUpdate$ = new Subject<string | void>();
   private login: HTMLElement;
   public balance$: Observable<any>;
   public tokenBalance$: Observable<any>;
   public dotsIssued$: Observable<any>;
   public netid$;
-  public token$: BehaviorSubject<string | null>;
-  public address;
-  public endpoint;
+  public widgetList: any;
+
 
   constructor() {
     const trigger$ = this.triggerUpdate$.asObservable();
     this.subscriber$ = new BehaviorSubject(null);
-    this.widgetType$ = new BehaviorSubject(null);
-    this.token$ = new BehaviorSubject(null);
+    this.widgetType = [];
+    this.token$ = new BehaviorSubject({});
     this.balance$ = new Observable();
     this.dotsIssued$ = new Observable();
+    this.widgetList = {};
     
     this.tokenBalance$ = new Observable();
-    const interval$ = merge(trigger$, of(1), interval(15000)).pipe(share());
+    const interval$ = merge(trigger$, of(1), interval(60000)).pipe(share());
     this.hideLogin = this.hideLogin.bind(this);
     this.handleLogin = this.handleLogin.bind(this);
     this.node = new Node('5KhYksBVQurtLcuCLfjtweY4AmHKTS62bU9D3drjr8kffaQHB4x', false, network);
@@ -57,16 +58,14 @@ export class ZapService {
 
     this.dotsIssued$ = interval$.pipe(
       switchMap(() => {
-        const provider = this.node.loadProvider(this.address);
-        return this.address && this.endpoint ? from(this.node.getIssuedDots(provider, this.endpoint)) : of(null)
-      })
+        return (this.widgetList !== {}) ? from(this.node.getIssuedDots(this.widgetList)) : of([]);
+      }),
     )
+    this.dotsIssued$.subscribe(res => console.log(res));
 
     this.tokenBalance$ = interval$.pipe(
-      switchMap(() => this.token$),
-      filter(token => !!token),
       switchMap(() => this.subscriber$),
-      switchMap(subscriber => (subscriber && this.token$.value)  ? from(this.node.getTokenBalance(subscriber, this.token$.value.split(' ')[1])) : of(null)),
+      switchMap(subscriber => (subscriber && this.token$.value !== {})  ? from(this.node.getTokenBalance(subscriber, this.token$.value)) : of([])),
     )
   }
 
@@ -81,15 +80,15 @@ export class ZapService {
 
   async initiate(provider, endpoint) {
     const tokens = await this.node.getProviderTokens(provider, 0, -1, -1);
-    this.widgetType$.next(tokens.length ? 'TOKEN' : 'PROVIDER');
+    this.widgetType[`${provider}&${endpoint}`] = tokens.length ? 'TOKEN' : 'PROVIDER';
     const endpointToken = tokens.filter((tok) => tok.endpoint === endpoint);
-    this.token$.next(endpointToken.length ? endpointToken[0].supply : null); 
-    this.triggerUpdate$.next();
+    this.token$.next({...this.token$.value, [`${provider}&${endpoint}`]: endpointToken.length ? endpointToken[0].supply : null});
+    this.widgetList = {...this.widgetList, [provider]: (this.widgetList[provider] && this.widgetList[provider].length) 
+      ? [...this.widgetList[provider], endpoint] : [endpoint]};
+    this.triggerUpdate$.next(`${provider}&${endpoint}`);
   }
 
   getWidgetInfo(address: string, endpoint: string) {
-    this.address = address;
-    this.endpoint = endpoint;
     const provider = this.node.loadProvider(address);
     const endp$ =  from(this.node.getProviderEndpointInfo(provider, endpoint));
     return endp$.pipe(
@@ -116,7 +115,7 @@ export class ZapService {
   bond(provider: string, endpoint: string, dots): Observable<{result: any; error: any}> {
     return this.subscriber$.pipe(
       filter((subscriber) => !!subscriber && subscriber instanceof Subscriber),
-      switchMap((subscriber) => this.widgetType$.value === 'PROVIDER' ? subscriber.bond(provider, endpoint, dots)
+      switchMap((subscriber) => this.widgetType[provider + '&' + endpoint] === 'PROVIDER' ? subscriber.bond(provider, endpoint, dots)
         .then(result => ({result, error: null}))
         .catch(error => ({error, result: null})) :
         this.node.tokenBond(subscriber, provider, endpoint, dots)
@@ -128,7 +127,7 @@ export class ZapService {
   unbond(provider: string, endpoint: string, dots): Observable<{result: any; error: any}> {
     return this.subscriber$.pipe(
       filter((subscriber: Subscriber) => !!subscriber && subscriber instanceof Subscriber),
-      switchMap((subscriber: Subscriber) =>  this.widgetType$.value === 'PROVIDER' ? subscriber.unbond(provider, endpoint, dots)
+      switchMap((subscriber: Subscriber) =>  this.widgetType[provider + endpoint] === 'PROVIDER' ? subscriber.unbond(provider, endpoint, dots)
         .then(result => ({result, error: null}))
         .catch(error => ({error, result: null})) :
         this.node.tokenUnBond(subscriber, provider, endpoint, dots)

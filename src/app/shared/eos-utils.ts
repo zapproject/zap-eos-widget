@@ -4,6 +4,7 @@ import { Provider } from "@zapjs/eos-provider";
 import BigNumber from 'bignumber.js';
 import ecc from 'eosjs-ecc';
 import { Serialize, Numeric } from 'eosjs';
+import { InvokeFunctionExpr } from '@angular/compiler';
 
 
 export class ProdNode extends Node {
@@ -54,12 +55,21 @@ export class ProdNode extends Node {
 		return this.rpc.get_currency_balance("eosio.token", subscriber.getAccount().name, 'EOS')
 	}
 
-	async getTokenBalance(subscriber: Subscriber, token: string) {
-		if(!subscriber || !token) {
-			return Promise.resolve(null)
+	async getTokenBalance(subscriber: Subscriber, tokens: any) {
+		if(!subscriber || tokens === {}) {
+			return Promise.resolve([])
 		}
-		const tokens = await this.getSubscriberTokens(subscriber.getAccount().name, 0, -1, -1);
-		return tokens.filter(ret => ret.balance && ret.balance.split(' ')[1] === token)[0].balance;
+		const tableTokens = await this.getSubscriberTokens(subscriber.getAccount().name, 0, -1, -1);
+		const ret = Object.keys(tokens).reduce((res, key) => {
+			const isToken = tableTokens.filter(ret => ret.balance && tokens[key] && ret.balance.split(' ')[1] === tokens[key].split(' ')[1]);
+			console.log(isToken)
+			if (isToken.length) {
+				res = {...res, [key]: isToken[0].balance};
+			}
+			return res;
+		}, {});
+		console.log(ret);
+		return ret;
 	}
 
 	public async loadAccount() {
@@ -83,11 +93,19 @@ export class ProdNode extends Node {
     	const text = await response.text();
 	}
 	  
-	public async getIssuedDots(provider: Provider, endpoint: string) {
-		const endps = await provider.queryProviderEndpoints(0, -1, -1);
-		const endp = endps.rows.filter((x: any, i: any) => x.specifier === endpoint);
-		const dotsIssued = await provider.queryIssued(endp[0].id, endp[0].id + 1, 1);
-		return (dotsIssued.rows.length) ? dotsIssued.rows[0].dots : 0;
+	public async getIssuedDots(widgetList: any) {
+		const issued = await Object.keys(widgetList).reduce(async(res, widgetProvider) => {
+			const acc = await res;
+			const provider = this.loadProvider(widgetProvider);
+			const {rows} = await provider.queryProviderEndpoints(0, -1, -1);
+			const endps = rows.filter(row => (widgetList[widgetProvider].indexOf(row.specifier) !== -1));
+			const e = await endps.reduce(async(res, element) => {
+				const dotsIssued = await provider.queryIssued(element.id, element.id + 1, 1);
+				return {...res, [`${widgetProvider}&${element.specifier}`]: dotsIssued.rows[0].dots};
+			}, {});
+			return {...acc, ...e};
+		}, Promise.resolve({}));
+		return issued
 	}
 
 	public async getProviderEndpointInfo(provider: Provider, endpoint: string) {

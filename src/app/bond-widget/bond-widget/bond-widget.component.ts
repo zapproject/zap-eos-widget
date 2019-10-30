@@ -62,17 +62,18 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
     }));
 
     this.subscriptions.push(this.zap.dotsIssued$.subscribe(dots => {
-      this.dotsIssued = dots;
+      this.dotsIssued = dots[`${this.address}&${this.endpoint}`];
       this.cd.detectChanges();
     }));
 
     this.subscriptions.push(this.zap.tokenBalance$.subscribe(tok => {
-      this.tokBalance = tok;
+      console.log(tok)
+      this.tokBalance = tok[`${this.address}&${this.endpoint}`];
       this.cd.detectChanges();
     }));
 
     this.subscriptions.push(this.zap.token$.subscribe(tok => {
-      this.token = tok ? tok.split(' ')[1] : null;
+      this.token = tok[`${this.address}&${this.endpoint}`] ? tok[`${this.address}&${this.endpoint}`].split(' ')[1] : null;
       this.cd.detectChanges();
     }));
 
@@ -105,7 +106,7 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
       tap((result) => {
         console.log('result', result);
         this.change.next();
-        this.zap.triggerUpdate$.next();
+        this.zap.triggerUpdate$.next(`${this.address}&${this.endpoint}`);
         this.handleMessage({text: 'Done!', type: 'SUCCESS', tx: result.transaction_id});
       }),
     );
