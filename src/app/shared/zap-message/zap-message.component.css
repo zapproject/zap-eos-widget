@@ -5,22 +5,23 @@
   margin-bottom: 1rem;
   border: 1px solid transparent;
   border-radius: .25rem;
+  margin-right: 30px;
 }
 :host:empty {
   display: none;
 }
 :host {
-  color: #0c5460;
-  background-color: #d1ecf1;
+  color: var(--primary-color);
+  background-color: white;
   border-color: #bee5eb;
 }
 :host.error {
-  color: #721c24;
-  background-color: #f8d7da;
+  color: var(--warn-color);
+  background-color: white;
   border-color: #f5c6cb;
 }
 :host.success {
-  color: #155724;
-  background-color: #d4edda;
+  color: var(--primary-color);
+  background-color: white;
   border-color: #c3e6cb;
 }

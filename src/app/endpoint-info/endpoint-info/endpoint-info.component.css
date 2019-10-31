@@ -1,0 +1,20 @@
+:host {
+	color: white;
+	font-size: 18px;
+	font-weight: 500;
+	line-height: 25px;
+	letter-spacing: 0px;
+}
+
+.zap-endpoint-info__title,
+.zap-endpoint-info__endpoint {
+	font-size: 20px;
+	font-weight: 600;
+	margin-bottom: 7px;
+	color: white;
+}
+
+.zap-endpoint-info__tokenaddress {
+	width: 188px;
+	overflow: hidden;
+}

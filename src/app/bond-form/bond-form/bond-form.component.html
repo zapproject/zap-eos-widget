@@ -4,8 +4,13 @@
     <div class="bond-dots-price">{{zapRequired / 10000}} EOS needed</div>
     <button type="submit">Bond</button>
     <button (click)="handleUnbond()" [disabled]="!canUnbond" type="button">Unbond</button>
+    <button  *ngIf="loggedIn" (click)="onClickPermission()" type="button">{{isAllowed === 'true' ? 'Remove' : 'Add'}} eosio.code</button>
   </fieldset>
 </form>
-<div *ngIf="!loggedIn">
-  <button (click)="showLogin.emit()" type="button">Login with seed</button>
+<div class="zap-bond-form__need-approve" *ngIf="loggedIn && isAllowed === 'false'">
+  <p>To bond you need give eosio.code permission for zap contract</p>
 </div>
+<div class="zap-bond-form__login" *ngIf="!loggedIn">
+  <p>Login with seed<button (click)="showLogin.emit()" type="button">Log in</button></p>
+</div>
+

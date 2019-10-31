@@ -2,10 +2,106 @@
   display: block;
 }
 
-p {
+:host p {
   color: red;
 }
 
-button {
+:host button {
   margin: 5px 10px 5px 0;
+}
+
+:host fieldset {
+	border: none;
+	padding: 10px 0 0 0px;
+}
+
+:host input {
+	width: 138px;
+	border: none;
+	background-color: white;
+	margin: 0px 0px 10px 0px;
+	padding: 10px 15px;
+	border-radius: 10px;
+	font-size: 18px;
+}
+
+:host fieldset > div {
+	font-size: 17px;
+	border: none;
+	color: white;
+	margin: 0px 0px 5px 0px;
+}
+
+:host fieldset > button {
+	margin: 15px 27px 5px 0;
+	padding: 10px 15px;
+	height: 65px;
+	vertical-align: bottom;
+	color: var(--primary-color);
+	font-size: 17px;
+	width: 138px;
+	border-radius: 10px;
+	background-color: #fff;
+	border-width: 2px;
+	border-color: var(--primary-color);
+	border-image: none;
+	border-style: solid;
+	-webkit-transition-duration: 0.4s;
+	transition-duration: 0.4s;
+	cursor: pointer;
+	font-family: 'Roboto', sans-serif;
+}
+
+:host fieldset > button:hover {
+	margin: 15px 27px 5px 0;
+	height: 65px;
+	vertical-align: bottom;
+	padding: 10px 15px;
+	color: white;
+	font-size: 17px;
+	width: 138px;
+	border-radius: 10px;
+	background-color: #fff0;
+	border-width: 2px;
+	border-color: white;
+	border-image: none;
+	border-style: solid;
+	background-image: linear-gradient(var(--button-hover-gradient-direction), var(--button-hover-gradient-start), var(--button-hover-gradient-end));
+	cursor: pointer;
+	font-family: 'Roboto', sans-serif;
+}
+
+:host p {
+	font-size: 15px;
+}
+
+
+:host > div > p {
+	padding: 3px 8px;
+	color: white;
+	background-color: var(--warn-color);
+	/* position: absolute; */
+	font-size: 14px;
+	margin-left: auto;
+	border-radius: 20px;
+	display: inline-block;
+	margin: 0;
+}
+
+:host > div > p > button {
+	padding: 3px 8px;
+	color: var(--warn-color);
+	background-color: white;
+	font-size: 14px;
+	font-weight: 700;
+	border-radius: 20px;
+	border-style: solid;
+	border-color: var(--warn-color);
+}
+
+:host > div > p > button:hover {
+	color: white;
+	background-color: var(--warn-color);
+	border-color: white;
+	transition-duration: 0.4s
 }

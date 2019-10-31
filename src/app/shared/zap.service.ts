@@ -24,6 +24,7 @@ declare const window: AppWindow;
 export class ZapService {
   private node: Node;
   public subscriber$: BehaviorSubject<Subscriber | null>;
+  public isAllowed$: BehaviorSubject<boolean>;
   public widgetType: {[key: string]: string} | any;
   public token$: BehaviorSubject<{[key: string]: string} | any>;
   public triggerUpdate$ = new Subject<string | void>();
@@ -38,6 +39,7 @@ export class ZapService {
   constructor() {
     const trigger$ = this.triggerUpdate$.asObservable();
     this.subscriber$ = new BehaviorSubject(null);
+    this.isAllowed$ = new BehaviorSubject(false);
     this.widgetType = [];
     this.token$ = new BehaviorSubject({});
     this.balance$ = new Observable();
@@ -61,7 +63,6 @@ export class ZapService {
         return (this.widgetList !== {}) ? from(this.node.getIssuedDots(this.widgetList)) : of([]);
       }),
     )
-    this.dotsIssued$.subscribe(res => console.log(res));
 
     this.tokenBalance$ = interval$.pipe(
       switchMap(() => this.subscriber$),
@@ -108,8 +109,19 @@ export class ZapService {
           endpointJson,
         }
       })
-    );
-    
+    );  
+  }
+
+  handlePermission(): Observable<{result: any; error: any}> {
+    return this.subscriber$.pipe(
+      filter((subscriber) => !!subscriber && subscriber instanceof Subscriber),
+      switchMap((subscriber) => subscriber.handlePermission('zapcoretest4', this.isAllowed$.value ? 'remove' : 'add')
+        .then(result => {
+          this.isAllowed$.next(!this.isAllowed$.value);
+          return {result, error: null};
+        })
+        .catch(error => ({error, result: null}))
+      ))
   }
 
   bond(provider: string, endpoint: string, dots): Observable<{result: any; error: any}> {
@@ -127,7 +139,7 @@ export class ZapService {
   unbond(provider: string, endpoint: string, dots): Observable<{result: any; error: any}> {
     return this.subscriber$.pipe(
       filter((subscriber: Subscriber) => !!subscriber && subscriber instanceof Subscriber),
-      switchMap((subscriber: Subscriber) =>  this.widgetType[provider + endpoint] === 'PROVIDER' ? subscriber.unbond(provider, endpoint, dots)
+      switchMap((subscriber: Subscriber) =>  this.widgetType[provider + '&' + endpoint] === 'PROVIDER' ? subscriber.unbond(provider, endpoint, dots)
         .then(result => ({result, error: null}))
         .catch(error => ({error, result: null})) :
         this.node.tokenUnBond(subscriber, provider, endpoint, dots)
@@ -158,7 +170,8 @@ export class ZapService {
     this.node = new Node(key, false, network);
     this.node.loadSubscriber().then(subscriber => {
       if (subscriber) this.hideLogin();
-      this.subscriber$.next(subscriber);
+      this.subscriber$.next(subscriber.subscriber);
+      this.isAllowed$.next(subscriber.isAllowed);
       this.triggerUpdate$.next();
     })
   }

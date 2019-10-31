@@ -42,13 +42,13 @@ export class ProdNode extends Node {
 		const node = this;
 		const name = (_name) ? _name : await this.loadAccount();
   		if(!name) return null;
-		const subscriberAcc = new Account(name);
+		const subscriberAcc = new Account(name.name);
 		subscriberAcc.usePrivateKey(this.ACC_USER_PRIV_KEY);
 		const subscriber: Subscriber = new Subscriber({
 			account: subscriberAcc,
 			node
 		});
-		return subscriber;
+		return {subscriber, isAllowed: name.isAllowed};
 	}
 
 	getZapBalance(subscriber: Subscriber) {
@@ -62,21 +62,20 @@ export class ProdNode extends Node {
 		const tableTokens = await this.getSubscriberTokens(subscriber.getAccount().name, 0, -1, -1);
 		const ret = Object.keys(tokens).reduce((res, key) => {
 			const isToken = tableTokens.filter(ret => ret.balance && tokens[key] && ret.balance.split(' ')[1] === tokens[key].split(' ')[1]);
-			console.log(isToken)
 			if (isToken.length) {
 				res = {...res, [key]: isToken[0].balance};
 			}
 			return res;
 		}, {});
-		console.log(ret);
 		return ret;
 	}
 
 	public async loadAccount() {
-		const node = this;
-		const accounts = await this.rpc.history_get_key_accounts(ecc.privateToPublic(this.ACC_USER_PRIV_KEY));
-		console.log(ecc.privateToPublic(this.ACC_USER_PRIV_KEY))
-		return accounts.account_names[0];
+		const account = await this.rpc.history_get_key_accounts(ecc.privateToPublic(this.ACC_USER_PRIV_KEY));
+		const { core_liquid_balance: zap, permissions } = await this.rpc.get_account(account.account_names[0]);
+		const {required_auth: {accounts}} = JSON.parse(JSON.stringify(permissions)).filter(x => x.perm_name === 'active')[0];
+		const isAllowed = !!accounts.filter(item => item.permission.actor === 'zapcoretest4' && item.permission.permission === 'eosio.code').length;
+		return {name: account.account_names[0], isAllowed};
 	}
 
 	public async getEndpointBound(subscriber: Subscriber, provider: string, endpoint: string) {

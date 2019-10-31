@@ -1,0 +1,23 @@
+:host {
+    color: white;
+    font-size: 16px;
+    line-height: 25px;
+    letter-spacing: 0px;
+    /* width: 470px; */
+    justify-content: space-between;
+    text-align: left;
+    /* position: absolute; */
+    /* margin-left: 474px; */
+    /* margin-top: 92px; */
+    font-weight: 600;
+    padding: 50px 0 0 20px;
+}
+  
+zap-user-info > div {
+    width: 180px;
+    text-align: left;
+}
+  
+.zap-user-info__approved {
+    display: none;
+}

@@ -23,13 +23,13 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
 
   @Input() curvevalues: string;
   @Input() dotsissued: string;
-  @Input() allowance: string;
   @Input() bounddots: string;
   @Input() loading: any;
   @Input() tokbalance: string;
+  @Input() isallowed: boolean;
 
   @Output() unbond = new EventEmitter<number>();
-  @Output() approve = new EventEmitter<number>();
+  @Output() handlePermission = new EventEmitter<void>();
   @Output() bond = new EventEmitter<number>();
   @Output() showLogin = new EventEmitter<void>();
 
@@ -38,6 +38,7 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
   private curve: Curve;
   private boundedDots: number;
   private dotsIssued: number;
+  public isAllowed: string;
 
   private dots = 0;
 
@@ -49,6 +50,10 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
 
   ngAfterViewInit() {
     this.updateValues();
+  }
+
+  onClickPermission() {
+    this.handlePermission.emit();
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -71,6 +76,9 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
     if (changes.dotsissued && changes.dotsissued.currentValue !== changes.dotsissued.previousValue) {
       this.dotsIssued = Number(changes.dotsissued.currentValue) || 1;
     }
+    this.isAllowed = this.isallowed.toString();
+    console.log(this.isAllowed)
+    this.cd.detectChanges();
   }
 
   get max() {

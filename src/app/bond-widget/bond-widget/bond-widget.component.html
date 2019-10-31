@@ -2,15 +2,7 @@
   {{message.text}}
   <zap-transaction-info *ngIf="message.tx" [attr.netid]="netid" [attr.tx]="message.tx"></zap-transaction-info>
 </zap-message>
-
 <div class="flex-row">
-  <zap-user-info
-    *ngIf="accountAddress"
-    [attr.address]="accountAddress"
-    [attr.zap]="zapBalance"
-    [attr.tokbalance]="tokBalance"
-  ></zap-user-info>
-
   <zap-endpoint-info
     [attr.dotsissued]="dotsIssued"
     [attr.endpoint]="endpoint"
@@ -18,6 +10,15 @@
     [attr.bounddots]="dotsBound"
     [attr.token]="token"
   ></zap-endpoint-info>
+  <zap-curve-chart
+    [attr.curvevalues]="curveValuesStringified"
+    [attr.dotsissued]="dotsIssued">
+  </zap-curve-chart>
+  <zap-user-info
+    [attr.address]="accountAddress"
+    [attr.zap]="zapBalance"
+    [attr.tokbalance]="tokBalance"
+  ></zap-user-info>
 </div>
 
 
@@ -28,13 +29,12 @@
   [attr.loading]="loading$ | async"
   (unbond)="handleUnbond($event)"
   (bond)="handleBond($event)"
+  (handlePermission)="handlePermission()"
   (showLogin)="zap.showLogin()"
   [attr.tokbalance]="tokBalance"
+  [attr.isallowed]="isAllowed"
 ></zap-bond-form>
 
-<zap-curve-chart
-  [attr.curvevalues]="curveValuesStringified"
-  [attr.dotsissued]="dotsIssued">
-</zap-curve-chart>
+
 
 <zap-markdown [attr.url]="endpointMd"></zap-markdown>

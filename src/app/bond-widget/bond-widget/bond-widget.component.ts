@@ -1,7 +1,8 @@
-import { Component, ViewEncapsulation, Input, OnChanges, ChangeDetectorRef, OnDestroy, OnInit } from '@angular/core';
+import { Component, ViewEncapsulation, Input, OnChanges, ChangeDetectorRef, OnDestroy, OnInit, ElementRef } from '@angular/core';
 import { ZapService } from 'src/app/shared/zap.service';
 import { filter, take, switchMap, share, map, shareReplay, tap } from 'rxjs/operators';
 import { Subject, merge, of, Observable } from 'rxjs';
+import { ColorThemeName, colorThemes } from 'src/app/color-themes';
 
 @Component({
   templateUrl: './bond-widget.component.html',
@@ -12,6 +13,7 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
 
   @Input() address: string;
   @Input() endpoint: string;
+  @Input() theme: ColorThemeName = 'green';
 
   curveValuesStringified: string;
   title;
@@ -19,9 +21,10 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
   dotsIssued: any;
   zapBalance: any;
   tokBalance: any;
+  isAllowed: boolean = false;
   dotsBound: any;
   accountAddress: any;
-  private action = new Subject<{type: 'BOND' | 'UNBOND' | 'APPROVE', payload: number}>();
+  private action = new Subject<{type: 'BOND' | 'UNBOND' | 'PERMISSION', payload?: number}>();
   private change = new Subject<void>();
   change$ = this.change.asObservable().pipe(shareReplay(1));
 
@@ -37,7 +40,22 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
   constructor(
     public zap: ZapService,
     private cd: ChangeDetectorRef,
+    private el: ElementRef,
   ) {}
+
+  private updateTheme() {
+    if (!this.el) return;
+    const theme = colorThemes[this.theme];
+    if (!theme) return;
+    const body = document.documentElement;
+    Object.keys(theme).forEach(k => {
+      this.el.nativeElement.style.setProperty(`--${k}`, theme[k]);
+    });
+  }
+
+  ngAfterViewInit() {
+    this.updateTheme();
+  }
 
   ngOnInit() {
     const change$ = merge(this.change$, of(1));
@@ -67,13 +85,17 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
     }));
 
     this.subscriptions.push(this.zap.tokenBalance$.subscribe(tok => {
-      console.log(tok)
       this.tokBalance = tok[`${this.address}&${this.endpoint}`];
       this.cd.detectChanges();
     }));
 
     this.subscriptions.push(this.zap.token$.subscribe(tok => {
       this.token = tok[`${this.address}&${this.endpoint}`] ? tok[`${this.address}&${this.endpoint}`].split(' ')[1] : null;
+      this.cd.detectChanges();
+    }));
+
+    this.subscriptions.push(this.zap.isAllowed$.subscribe(isAllowed => {
+      this.isAllowed = isAllowed;
       this.cd.detectChanges();
     }));
 
@@ -92,15 +114,21 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
       switchMap(({payload}) => this.zap.unbond(this.address, this.endpoint, payload)),
       share(),
     );
+    const permission$ = action$.pipe(
+      filter(({type}) => type === 'PERMISSION'),
+      tap(() => { this.handleMessage({text: 'Handling permission...'}); }),
+      switchMap(() => this.zap.handlePermission()),
+      share(),
+    );
 
-    const error$ = merge(bond$, unbond$).pipe(
+    const error$ = merge(bond$, unbond$, permission$).pipe(
       filter(response => !!response.error),
       map(({error}) => error),
       tap(error => {
         this.handleMessage({text: error.message, type: 'ERROR'});
       }),
     );
-    const success$ = merge(bond$, unbond$).pipe(
+    const success$ = merge(bond$, unbond$, permission$).pipe(
       filter(response => !response.error),
       map(({result}) => result),
       tap((result) => {
@@ -150,6 +178,9 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
 
   handleUnbond(e: CustomEvent) {
     this.action.next({type: 'UNBOND', payload: e.detail});
+  }
+  handlePermission() {
+    this.action.next({type: 'PERMISSION'});
   }
 
 }
