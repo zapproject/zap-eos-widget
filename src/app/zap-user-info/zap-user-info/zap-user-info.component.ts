@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation, Input } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, Input, OnChanges } from '@angular/core';
 
 @Component({
   templateUrl: './zap-user-info.component.html',
@@ -9,6 +9,7 @@ export class ZapUserInfoComponent implements OnInit {
 
   @Input() address: any;
   @Input() zap: any;
+  @Input() tokbalance: any;
 
   constructor() { }
 

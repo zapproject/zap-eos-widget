@@ -15,8 +15,10 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
 
   curveValuesStringified: string;
   title;
+  token: string;
   dotsIssued: any;
   zapBalance: any;
+  tokBalance: any;
   dotsBound: any;
   accountAddress: any;
   private action = new Subject<{type: 'BOND' | 'UNBOND' | 'APPROVE', payload: number}>();
@@ -39,6 +41,7 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnInit() {
     const change$ = merge(this.change$, of(1));
+    this.zap.initiate(this.address, this.endpoint);
 
     this.subscriptions.push(this.zap.netid$.subscribe(netid => { this.netid = netid; }))
 
@@ -48,13 +51,29 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
     }));
 
     this.subscriptions.push(change$.pipe(switchMap(e => this.zap.getBoundDots(this.address, this.endpoint))).subscribe(dots => {
-     this.dotsBound = dots;
-     this.cd.detectChanges();
-   }));
+      this.dotsBound = dots;
+      this.cd.detectChanges();
+    }));
 
 
     this.subscriptions.push(this.zap.balance$.subscribe(zap => {
       this.zapBalance = zap;
+      this.cd.detectChanges();
+    }));
+
+    this.subscriptions.push(this.zap.dotsIssued$.subscribe(dots => {
+      this.dotsIssued = dots[`${this.address}&${this.endpoint}`];
+      this.cd.detectChanges();
+    }));
+
+    this.subscriptions.push(this.zap.tokenBalance$.subscribe(tok => {
+      console.log(tok)
+      this.tokBalance = tok[`${this.address}&${this.endpoint}`];
+      this.cd.detectChanges();
+    }));
+
+    this.subscriptions.push(this.zap.token$.subscribe(tok => {
+      this.token = tok[`${this.address}&${this.endpoint}`] ? tok[`${this.address}&${this.endpoint}`].split(' ')[1] : null;
       this.cd.detectChanges();
     }));
 
@@ -87,6 +106,7 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
       tap((result) => {
         console.log('result', result);
         this.change.next();
+        this.zap.triggerUpdate$.next(`${this.address}&${this.endpoint}`);
         this.handleMessage({text: 'Done!', type: 'SUCCESS', tx: result.transaction_id});
       }),
     );
@@ -111,8 +131,7 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
       take(1),
     ).subscribe(widget => {
       this.curveValuesStringified = JSON.stringify(widget.curve.values);
-      this.dotsIssued = widget.dotsIssued;
-      this.title = widget.provider.title;
+      this.title = widget.provider.getTitle();
       this.endpointMd = widget.endpointMd;
       this.cd.detectChanges();
     });

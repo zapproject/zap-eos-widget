@@ -8,6 +8,7 @@
     *ngIf="accountAddress"
     [attr.address]="accountAddress"
     [attr.zap]="zapBalance"
+    [attr.tokbalance]="tokBalance"
   ></zap-user-info>
 
   <zap-endpoint-info
@@ -15,6 +16,7 @@
     [attr.endpoint]="endpoint"
     [attr.title]="title"
     [attr.bounddots]="dotsBound"
+    [attr.token]="token"
   ></zap-endpoint-info>
 </div>
 
@@ -27,6 +29,7 @@
   (unbond)="handleUnbond($event)"
   (bond)="handleBond($event)"
   (showLogin)="zap.showLogin()"
+  [attr.tokbalance]="tokBalance"
 ></zap-bond-form>
 
 <zap-curve-chart

@@ -26,6 +26,7 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
   @Input() allowance: string;
   @Input() bounddots: string;
   @Input() loading: any;
+  @Input() tokbalance: string;
 
   @Output() unbond = new EventEmitter<number>();
   @Output() approve = new EventEmitter<number>();
@@ -35,7 +36,6 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
   @ViewChild('input') input: ElementRef<HTMLInputElement>;
 
   private curve: Curve;
-  private approved: number;
   private boundedDots: number;
   private dotsIssued: number;
 
@@ -56,12 +56,18 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
       this.curve = new Curve(JSON.parse(changes.curvevalues.currentValue));
       this.updateValues();
     }
+
     if (changes.bounddots && changes.bounddots.currentValue !== changes.bounddots.previousValue) {
       this.loggedIn = !!this.bounddots || this.bounddots === '0';
       this.boundedDots = Number(changes.bounddots.currentValue);
       this.dots = Number(this.input.nativeElement.value);
-      this.canUnbond = this.boundedDots > this.dots;
+      this.canUnbond = this.boundedDots > this.dots && !this.tokbalance
     }
+
+    if (changes.tokbalance && changes.tokbalance.currentValue !== changes.tokbalance.previousValue) {
+      this.canUnbond = this.tokbalance && parseInt(this.tokbalance) > 0;
+    }
+
     if (changes.dotsissued && changes.dotsissued.currentValue !== changes.dotsissued.previousValue) {
       this.dotsIssued = Number(changes.dotsissued.currentValue) || 1;
     }
@@ -74,7 +80,7 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
   private updateValues() {
     this.dots = Number(this.input.nativeElement.value);
     if (!this.curve) return;
-    this.canUnbond = this.boundedDots > this.dots;
+    this.canUnbond = (this.boundedDots >= this.dots && !this.tokbalance) || (parseInt(this.tokbalance) >= this.dots);
     try {
       this.zapRequired = this.curve.getZapRequired(this.dotsIssued, this.dots);
       this.cd.detectChanges();
@@ -91,7 +97,7 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
   }
 
   handleUnbond() {
-    if (this.dots < 1 || this.dots > this.boundedDots) return;
+    if (this.dots < 1 || (this.dots > this.boundedDots && !this.tokbalance) || parseInt(this.tokbalance) === 0) return;
     this.unbond.emit(this.dots);
   }
 

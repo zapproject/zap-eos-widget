@@ -11,6 +11,7 @@ export class EndpointInfoComponent implements OnInit {
   @Input() endpoint: string;
   @Input() dotsissued: string;
   @Input() bounddots: string;
+  @Input() token: string;
 
   constructor() { }
 
