@@ -132,7 +132,6 @@ export class BondWidgetComponent implements OnInit, OnChanges, OnDestroy {
       filter(response => !response.error),
       map(({result}) => result),
       tap((result) => {
-        console.log('result', result);
         this.change.next();
         this.zap.triggerUpdate$.next(`${this.address}&${this.endpoint}`);
         this.handleMessage({text: 'Done!', type: 'SUCCESS', tx: result.transaction_id});

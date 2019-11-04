@@ -4,7 +4,7 @@ import { CurveSvgLineChart } from 'zap-curve-chart/lib/CurveSvgLineChart';
 @Component({
   templateUrl: './curve-chart.component.html',
   styleUrls: ['./curve-chart.component.css'],
-  encapsulation: ViewEncapsulation.Emulated
+  encapsulation: ViewEncapsulation.None
 })
 export class CurveChartComponent implements OnChanges, AfterViewInit {
 

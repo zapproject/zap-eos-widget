@@ -17,7 +17,6 @@ html {
 	--button-hover-gradient-direction: -180deg;
 	--chart-circle-fill: #4CAF50;
 }
-
 :host {
 	display: block;
 	padding: 20px 0px 20px 25px;

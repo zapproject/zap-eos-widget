@@ -1,12 +1,13 @@
-:host {
-  display: block;
+
+zap-curve-chart {
+	display: block;
 	height: 150px;
 	width: 260px;
 	max-width: 260px;
 	min-width: 260px;
 	position: relative;
 }
-
+	
 .curve-chart {
 	display: block;
 	background-color: #ffffffab;
@@ -21,9 +22,8 @@
 
 	overflow: hidden;
 }
-
 .curve-chart circle {
-	fill: var(--primary-color);
+	fill: var(--chart-circle-fill);
 }
 
 .curve-string {

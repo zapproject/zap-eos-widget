@@ -77,7 +77,6 @@ export class BondFormComponent implements OnChanges, AfterViewInit {
       this.dotsIssued = Number(changes.dotsissued.currentValue) || 1;
     }
     this.isAllowed = this.isallowed.toString();
-    console.log(this.isAllowed)
     this.cd.detectChanges();
   }
 

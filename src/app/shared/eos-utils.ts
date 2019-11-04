@@ -81,7 +81,7 @@ export class ProdNode extends Node {
 	public async getEndpointBound(subscriber: Subscriber, provider: string, endpoint: string) {
 		const encodedName = new BigNumber(this.getEncodedName(provider));
 		// @ts-ignore
-    	const allHolders = await subscriber.queryHolders(encodedName.toString(), encodedName.plus(1).toString(), -1);
+		const allHolders = await subscriber.queryHolders(encodedName.toString(), encodedName.plus(1).toString(), -1);
     	const _bound = allHolders.rows.filter((raw: any) => raw.endpoint === endpoint);
     	const bound = (_bound.length) ? _bound[0].dots : 0;
     	return bound;
