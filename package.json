@@ -28,7 +28,7 @@
     "eosjs-ecc": "^4.0.4",
     "github-markdown-css": "^3.0.1",
     "hdkey": "1.1.0",
-    "marked": "^0.5.2",
+    "marked": "^4.0.10",
     "eosjs": "20.0.0",
     "package_name": "^1.0.2",
     "rxjs": "~6.4.0",
