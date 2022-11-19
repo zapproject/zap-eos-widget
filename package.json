@@ -40,7 +40,7 @@
     "zap-curve-chart": "git+https://github.com/zapproject/zap-curve-chart.git"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "~0.13.6",
+    "@angular-devkit/build-angular": "~15.0.0",
     "@angular/cli": "~7.3.6",
     "@angular/compiler-cli": "~7.2.9",
     "@angular/language-service": "~7.2.9",
